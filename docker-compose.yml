@@ -1,0 +1,21 @@
+version: '2'
+
+volumes:
+  shared:
+
+services:
+  jupyter:
+    build: ./docker
+    volumes:
+      - ./:/notebooks
+      - shared:/logs
+    ports:
+      - "8885:8888"
+
+  tensorboard:
+    build: ./docker
+    volumes:
+      - shared:/logs
+    ports:
+      - "6006:6006"
+    command: bash -c "rm -fr /logs/* && tensorboard --logdir=/logs"
