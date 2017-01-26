@@ -1,14 +1,23 @@
 version: '2'
 
 volumes:
+  nvidia:
+    external:
+      name: nvidia_driver_367.57
   shared:
 
 services:
   jupyter:
     build: ./docker
     volumes:
-      - ./:/notebooks
+      - ./notebooks:/notebooks
+      - ./models:/models
       - shared:/logs
+      - nvidia:/usr/local/nvidia:ro
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
     ports:
       - "8885:8888"
 
@@ -16,6 +25,11 @@ services:
     build: ./docker
     volumes:
       - shared:/logs
+      - nvidia:/usr/local/nvidia:ro
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
     ports:
       - "6006:6006"
     command: bash -c "rm -fr /logs/* && tensorboard --logdir=/logs"
