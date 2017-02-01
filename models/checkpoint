@@ -1,2 +1,2 @@
-model_checkpoint_path: "/models/actor-critic-cartpole.model"
-all_model_checkpoint_paths: "/models/actor-critic-cartpole.model"
+model_checkpoint_path: "/models/recurrent-policy-gradient-cartpole.model"
+all_model_checkpoint_paths: "/models/recurrent-policy-gradient-cartpole.model"

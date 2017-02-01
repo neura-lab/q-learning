@@ -4,97 +4,108 @@ from numpy.random import choice
 import random
 from tensorbuilder.api import *
 import tensorflow as tf
-from tensorflow.contrib import layers
-import numpy as np
 
 env = gym.make("CartPole-v1")
 
 
+def next_action(actions, e=0.05):
+    n = len(actions)
+    return choice(n, p=actions)
+
+def select_columns(tensor, indexes):
+    idx = tf.stack((tf.range(tf.shape(indexes)[0]), indexes), 1)
+    return tf.gather_nd(tensor, idx)
+
+def discount(rewards, y):
+    r_accum = 0.0
+    gains = []
+    for r in reversed(list(rewards)):
+        r_accum = r + y * r_accum
+        gains.insert(0, r_accum)
+
+    return gains
+
+
 n_actions = env.action_space.n
-n_states = env.observation_space.shape[0]
-learning_rate = 0.85
-y = 0.9
-model_name = "deep-integrated-policy-gradient-cartpole-v1.model"
+n_states = env.observation_space.shape[0] * 2
+model_name = "actor-critic-cartpole.model"
 model_path = "models/" + model_name
+y = 0.98
+g_max = 5.0
 
 graph = tf.Graph()
-gsess = tf.InteractiveSession(graph=graph)
 with graph.as_default():
     with tf.device("cpu:0"):
-        s = tf.placeholder(tf.float32, [n_states])
-        step = tf.placeholder(tf.int32, [])
-        a = tf.placeholder(tf.int32, [])
-        r = tf.placeholder(tf.float32, [])
+        S = tf.placeholder(tf.float32, [None, n_states], name='s')
+        A = tf.placeholder(tf.int32, [None], name='a')
+        R = tf.placeholder(tf.float32, [None], name='r')
+        V1 = tf.placeholder(tf.float32, [None], name='v1')
+        LR = tf.placeholder(tf.float32, [], name='lr')
+
+        ops = dict(trainable=True, weights_initializer=tf.random_uniform_initializer(minval=0.0, maxval=0.01), biases_initializer=None) #tf.random_uniform_initializer(minval=0, maxval=0.01))
+
+        with tf.variable_scope("Actor"):
+            PS = Pipe(
+                S,
+                T
+#                 .relu_layer(32, **ops)
+                .relu_layer(16, **ops)
+                .softmax_layer(2, **ops)
+            )
+        PWs = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "Actor")
+
+        with tf.variable_scope("Critic"):
+            V = Pipe(
+                S,
+                tf.Variable(0.0, name="m")
+#                 T.linear_layer(1, **ops),
+#                 T[:, 0]
+            )
+        VWs = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "Critic")
 
 
-        ops = dict(trainable=True, weights_initializer=tf.random_uniform_initializer(minval=0, maxval=0.01), biases_initializer=None) #tf.random_uniform_initializer(minval=0, maxval=0.01))
+        PSA = select_columns(PS, A)
+
+        Trainer = tf.train.GradientDescentOptimizer(LR)
 
 
-        [Ps, V] = Pipe(
-            s,
-            T.expand_dims(0)
-            .relu_layer(32, scope='relu_layer', **ops)
-            .relu_layer(16, scope='relu_layer2', **ops),
-            [
-                T.softmax_layer(n_actions, scope='softmax_layer_actor', **ops)
-                >> T[0]
-            ,
-                T.linear_layer(1, scope='linear_layer_critic', **ops)
-                >> T[0,0]
-            ]
-        )
-        Psa = Ps[a]
+        G = R
+        E = G - V
 
-        ws = tf.trainable_variables()
+        LossActor = -tf.reduce_mean(tf.log(PSA) * E)
+        gradients_actor = Trainer.compute_gradients(LossActor, var_list=PWs)
+        gradients_actor = [ (tf.clip_by_value(g, -g_max, g_max), w) for g, w in gradients_actor ]
+        UpdateActor = Trainer.apply_gradients(gradients_actor)
 
-        gradients_actor = tf.gradients(tf.log(Psa), ws)
-        gradients_actor = [ g if g is not None else tf.zeros_like(w) for g, w in zip(gradients_actor, ws) ]
+        LossCritic = Pipe(E, tf.nn.l2_loss, tf.reduce_mean)
+        gradients_critic = Trainer.compute_gradients(LossCritic, var_list=VWs)
+        gradients_critic = [ (tf.clip_by_value(g, -g_max, g_max), w) for g, w in gradients_critic ]
+        UpdateCritic = Trainer.apply_gradients(gradients_critic)
 
-        gradients_critic = tf.gradients(V, ws)
-        gradients_critic = [ g if g is not None else tf.zeros_like(w) for g, w in zip(gradients_critic, ws) ]
-
-        dws = [ tf.placeholder(w.dtype, w.get_shape()) for w in ws ]
-        update = [ tf.assign_add(w, ws) for w, ws in zip(ws, dws) ]
-
-
-        writer = tf.summary.FileWriter('/logs/' +  model_name)
-        saver = tf.train.Saver()
-
-
-def next_action(actions, get_max=False):
-    n = actions.shape[0]
-    return choice(n, p=actions) if not get_max else np.argmax(actions)
+        Writer = tf.summary.FileWriter('/logs/' +  model_name, graph=graph)
+        Saver = tf.train.Saver()
 
 
 import time
-
-_s = env.reset()
+s = env.reset()
+s = np.hstack((s, s))
 done = False
+rt = 0
 with tf.Session(graph=graph) as sess:
-    # saver.restore(sess, model_path)
-    sess.run(tf.global_variables_initializer())
+    Saver.restore(sess, model_path)
 
-    for i in range(1000):
-
-        _ps = sess.run(Ps, feed_dict={s: _s})
-        _a = next_action(_ps, 0)
-
-
-        print _s
-
-        print "psa", [_psa for _psa in _ps]
-        print "a", _a
-
-        _s, _r, done, info = env.step(_a)
+    for i in range(20000):
+        ps = sess.run(PS, feed_dict={S: [s]})[0]
+        a = np.argmax(ps)
+        s1, r, done, info = env.step(a)
+        rt += r
+        s = np.hstack((s[n_states/2:], s1))
         env.render()
 
-        print "s", _s
-        print "r", _r
-
-        print("")
-
-        time.sleep(0.2)
+        time.sleep(0.01)
 
         if done:
-            print(_r)
+            print(r)
             break
+
+print(rt)
