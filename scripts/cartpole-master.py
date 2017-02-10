@@ -5,6 +5,8 @@ import random
 from tensorbuilder.api import *
 import tensorflow as tf
 
+
+
 env = gym.make("CartPole-v1")
 
 def select_columns(tensor, indexes):
@@ -139,7 +141,7 @@ for i in range(10000):
     env.render()
 
     rt += r
-    time.sleep(0.01)
+    time.sleep(0.02)
 
     if done:
         print(rt)
