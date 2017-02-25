@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:0.12.1-gpu
+FROM tensorflow/tensorflow:1.0.0
 
 RUN apt-get update
 RUN apt-get -y install \
@@ -25,9 +25,11 @@ RUN pip install plotly
 RUN pip install gym
 RUN pip install 'gym[all]'
 
-RUN pip install tensorbuilder>=0.3.6
+RUN pip install phi
 
 RUN pip install sympy
+RUN echo "hola2"
+RUN pip install coconut-develop --upgrade
 
 WORKDIR /notebooks
 

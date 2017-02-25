@@ -1,0 +1,5 @@
+model_checkpoint_path: "/notebooks/cart-pole-actor-critic/actor-critic.model.max"
+all_model_checkpoint_paths: "/logs/run141/Q-network-full.max"
+all_model_checkpoint_paths: "/notebooks/cart-pole-actor-critic/actor-critic.model"
+all_model_checkpoint_paths: "/logs/run141/Q-network-full.model"
+all_model_checkpoint_paths: "/notebooks/cart-pole-actor-critic/actor-critic.model.max"
