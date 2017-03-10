@@ -1,0 +1,5 @@
+model_checkpoint_path: "/home/cristian/data/neura-lab/q-learning/notebooks/cart-pole-Q-network/Q-network-full.model.max"
+all_model_checkpoint_paths: "/home/cristian/data/neura-lab/q-learning/notebooks/cart-pole-Q-network/Q-network-full.model"
+all_model_checkpoint_paths: "logs/run42/Q-network-full.model"
+all_model_checkpoint_paths: "logs/run42/Q-network-full.max"
+all_model_checkpoint_paths: "/home/cristian/data/neura-lab/q-learning/notebooks/cart-pole-Q-network/Q-network-full.model.max"

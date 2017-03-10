@@ -1,3 +1,2 @@
-model_checkpoint_path: "/home/cristian/data/neura-lab/q-learning/notebooks/lunar-lander-actor-critic/actor-critic.model"
-all_model_checkpoint_paths: "/home/cristian/data/neura-lab/q-learning/notebooks/lunar-lander-actor-critic/actor-critic.model.max"
-all_model_checkpoint_paths: "/home/cristian/data/neura-lab/q-learning/notebooks/lunar-lander-actor-critic/actor-critic.model"
+model_checkpoint_path: "/home/cristian/data/neura-lab/q-learning/notebooks/lunar-lander/actor-critic/actor-critic.model"
+all_model_checkpoint_paths: "/home/cristian/data/neura-lab/q-learning/notebooks/lunar-lander/actor-critic/actor-critic.model"
